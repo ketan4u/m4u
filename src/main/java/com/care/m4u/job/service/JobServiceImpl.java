@@ -1,6 +1,7 @@
 package com.care.m4u.job.service;
 
 import com.care.m4u.job.dto.JobAssignmentRequest;
+import com.care.m4u.job.dto.JobDeletionRequest;
 import com.care.m4u.job.dto.JobResponse;
 import com.care.m4u.job.model.Job;
 import com.care.m4u.job.repository.JobsRepo;
@@ -9,6 +10,9 @@ import com.care.m4u.worker.repository.WorkerRepo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +32,7 @@ public class JobServiceImpl implements JobService {
 
     @Override
     @Transactional
+    @CachePut(value = "jobs", key = "#result.id")
     public JobResponse assignJob(JobAssignmentRequest request) {
         logger.info("Starting job assignment for location: {}, {}", request.getLatitude(), request.getLongitude());
 
@@ -60,6 +65,37 @@ public class JobServiceImpl implements JobService {
             nearestWorkers.get(0).getId(), nearestWorkers.get(1).getId());
 
         return mapToResponse(savedJob);
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = "jobs", key = "#jobId")
+    public void deleteJob(Long jobId, JobDeletionRequest request, String deletedBy) {
+        logger.info("Starting job deletion for ID: {}", jobId);
+
+        Job job = jobsRepo.findById(jobId)
+            .orElseThrow(() -> new RuntimeException("Job not found"));
+
+        // Check if the job is already completed
+        if ("COMPLETED".equals(job.getStatus())) {
+            throw new RuntimeException("Cannot delete a completed job");
+        }
+
+        // Set deletion details
+        job.setDeletionReason(request.getReason());
+        job.setDeletedBy(deletedBy);
+        job.setStatus("DELETED");
+
+        jobsRepo.save(job);
+        logger.info("Job successfully deleted with ID: {}", jobId);
+    }
+
+    @Cacheable(value = "jobs", key = "#jobId", unless = "#result == null")
+    public JobResponse getJobById(Long jobId) {
+        logger.info("Fetching job with ID: {}", jobId);
+        Job job = jobsRepo.findById(jobId)
+            .orElseThrow(() -> new RuntimeException("Job not found"));
+        return mapToResponse(job);
     }
 
     private JobResponse mapToResponse(Job job) {

@@ -38,7 +38,11 @@ public class Job {
     @Column
     private String status;
 
+    @Column
+    private String deletionReason;
 
+    @Column
+    private String deletedBy;
 
     public Job() {
     }
@@ -117,5 +121,21 @@ public class Job {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getDeletionReason() {
+        return deletionReason;
+    }
+
+    public void setDeletionReason(String deletionReason) {
+        this.deletionReason = deletionReason;
+    }
+
+    public String getDeletedBy() {
+        return deletedBy;
+    }
+
+    public void setDeletedBy(String deletedBy) {
+        this.deletedBy = deletedBy;
     }
 }

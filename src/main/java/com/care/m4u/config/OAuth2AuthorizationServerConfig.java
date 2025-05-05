@@ -16,7 +16,7 @@ import java.time.Duration;
 import java.util.UUID;
 
 @Configuration
-public class OAuth2Config {
+public class OAuth2AuthorizationServerConfig {
 
     @Bean
     public RegisteredClientRepository registeredClientRepository() {
@@ -31,7 +31,9 @@ public class OAuth2Config {
                 .scope(OidcScopes.OPENID)
                 .scope("read")
                 .scope("write")
-                .clientSettings(ClientSettings.builder().requireAuthorizationConsent(true).build())
+                .clientSettings(ClientSettings.builder()
+                        .requireAuthorizationConsent(true)
+                        .build())
                 .tokenSettings(TokenSettings.builder()
                         .accessTokenTimeToLive(Duration.ofHours(1))
                         .refreshTokenTimeToLive(Duration.ofDays(1))
